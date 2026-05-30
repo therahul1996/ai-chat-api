@@ -20,7 +20,6 @@ export const registerUser = async (req: Request, res: Response) => {
         res.status(400).json({ message: "User already exist or invalid Cred" })
     }
 }
-
 export const updateUser = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -38,7 +37,6 @@ export const updateUser = async (req: Request, res: Response) => {
         res.status(400).json({ message: (err as Error).message })
     }
 }
-
 export const getUserById = async (req: Request, res: Response) => {
     try {
         const { id } = req.params;
@@ -51,31 +49,6 @@ export const getUserById = async (req: Request, res: Response) => {
         res.status(400).json({ message: (err as Error).message })
     }
 }
-export const deleteUser = async (req: Request, res: Response) => {
-    try {
-        const { id } = req.params;
-        await prisma.user.delete({
-            where: { id: id }
-        })
-        res.status(201).json({ message: "User Deleted Successfully!" });
-    }
-    catch (err) {
-        res.status(500).json({ message: (err as Error).message })
-    }
-}
-
-
-
-export const getAllUsers = async (req: Request, res: Response) => {
-    try {
-        const users = await prisma.user.findMany()
-        res.status(201).json(users);
-    }
-    catch (err) {
-        res.status(500).json({ message: (err as Error).message })
-    }
-}
-
 export const loginUser = async (req: Request, res: Response) => {
     try {
         const { email, password } = req.body;

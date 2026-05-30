@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import userRoutes from "./routes/userRoutes"
 import chatRoutes from "./routes/chatRoutes"
+import documentRoutes from "./routes/documentRoutes"
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./config/swagger");
 dotenv.config();
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 app.use("/api/users", userRoutes)
 app.use("/api/chat", chatRoutes)
+app.use("/api/documents", documentRoutes)
 
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 const PORT = process.env.PORT || 3000;

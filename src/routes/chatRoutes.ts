@@ -23,7 +23,7 @@ const router = Router();
  *           schema:
  *             type: object
  *             properties:
- *               title:
+ *               question:
  *                 type: string
  *     responses:
  *       201:
@@ -58,10 +58,12 @@ router.post('/', authenticateToken as any, generateConversation);
  *           schema:
  *             type: object
  *             properties:
- *               role:
+ *               question:
  *                 type: string
- *               message:
+ *               documentId:
  *                 type: string
+ *                 description: "Document ID for RAG"
+ *                 nullable: true
  *     responses:
  *       201:
  *         description: Chat message added
