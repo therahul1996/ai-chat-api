@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { generateConversation, generateText } from "../controllers/chatController";
+import { generateConversation, generateText, generateTextWithMcp } from "../controllers/chatController";
 import { authenticateToken } from "../middlewares/authMiddleware";
 
 const router = Router();
@@ -68,7 +68,7 @@ router.post('/', authenticateToken as any, generateConversation);
  *       201:
  *         description: Chat message added
  */
-router.post('/:conversationId/messages', authenticateToken as any, generateText);
+router.post('/:conversationId/messages', authenticateToken as any, generateTextWithMcp);
 
 
 export default router;
