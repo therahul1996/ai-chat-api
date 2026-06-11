@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
+import crypto from "crypto";
 const prisma = require("../lib/prisma");
 const pdfParse = require("pdf-parse");
-
 // Helper for generating embeddings locally using Transformers.js
 let embedder: any;
 export async function getEmbedder() {
@@ -48,6 +48,22 @@ export const uploadDocument = async (req: Request, res: Response) => {
 
         const buffer = req.file.buffer;
         const filename = req.file.originalname;
+        const userId = (req as any).user.id;
+        const contentHash = crypto.createHash('sha256').update(buffer).digest('hex');
+
+        const existingDocument = await prisma.document.findFirst({
+            where: {
+                userId: userId,
+                contentHash: contentHash
+            }
+        });
+
+        if (existingDocument) {
+            return res.status(200).json({
+                message: "Document already exists. Duplicate upload skipped.",
+                documentId: existingDocument.id
+            });
+        }
 
         let content = "";
         if (req.file.mimetype === 'application/pdf') {
@@ -61,7 +77,7 @@ export const uploadDocument = async (req: Request, res: Response) => {
         content = content.replace(/\0/g, '');
 
         const document = await prisma.document.create({
-            data: { filename, content }
+            data: { filename, content, contentHash, userId }
         });
 
         const chunks = chunkText(content);
