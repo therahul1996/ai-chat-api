@@ -20,6 +20,8 @@ model User {
   email     String   @unique
   age       Int?
   password  String
+  documents Document[]
+  conversations Conversation[]
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
 }
@@ -27,6 +29,8 @@ model User {
 model Conversation {
   id        String   @id @default(uuid())
   title     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now())
   chats     Chat[]
@@ -43,11 +47,15 @@ model Chat {
 }
 
 model Document {
-  id        String   @id @default(uuid())
-  filename  String
-  content   String
-  createdAt DateTime @default(now())
-  chunks    DocumentChunk[]
+  id          String   @id @default(uuid())
+  filename    String
+  content     String
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  contentHash String
+  createdAt   DateTime @default(now())
+  chunks      DocumentChunk[]
+  @@unique([userId, contentHash])
 }
 
 model DocumentChunk {
