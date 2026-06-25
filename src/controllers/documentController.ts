@@ -13,17 +13,19 @@ export async function getEmbedder() {
     return embedder;
 }
 
-function chunkText(text: string, chunkSize: number = 1000, overlap: number = 200) {
-    const chunks = [];
+
+function chunkText(text: string, chunkSize = 1000, overlap = 200) {
+    const chunks: string[] = [];
     let i = 0;
+    const stride = chunkSize - overlap;
+
     while (i < text.length) {
         chunks.push(text.slice(i, i + chunkSize));
-        i += chunkSize - overlap;
+        if (i + chunkSize >= text.length) break; // last chunk captured, stop
+        i += stride;
     }
     return chunks;
 }
-
-
 
 export function cosineSimilarity(vecA: number[], vecB: number[]) {
     let dotProduct = 0.0;
@@ -80,21 +82,21 @@ export const uploadDocument = async (req: Request, res: Response) => {
             data: { filename, content, contentHash, userId }
         });
 
-        const chunks = chunkText(content);
+        const chunkTexts = chunkText(content).filter(c => c.trim().length > 50);
         const extract = await getEmbedder();
 
-        for (const chunk of chunks) {
-            const output = await extract(chunk, { pooling: 'mean', normalize: true });
-            const embedding = Array.from(output.data);
+        const embeddings = await Promise.all(
+            chunkTexts.map(chunk => extract(chunk, { pooling: 'mean', normalize: true }))
+        );
 
-            await prisma.documentChunk.create({
-                data: {
-                    text: chunk,
-                    embedding: embedding,
-                    documentId: document.id
-                }
-            });
-        }
+        await prisma.documentChunk.createMany({
+            data: chunkTexts.map((text, i) => ({
+                text,
+                embedding: Array.from(embeddings[i].data),
+                documentId: document.id
+            }))
+        });
+
 
         res.status(201).json({ message: "Document uploaded and processed successfully", documentId: document.id });
 

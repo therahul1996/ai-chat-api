@@ -15,8 +15,12 @@ const client = new OpenAI({
 export const generateConversation = async (req: Request, res: Response) => {
     try {
         const { question } = req.body;
+        const userId = (req as any).user.id;
         const response = await prisma.conversation.create({
-            data: { title: question }
+            data: {
+                title: question,
+                userId
+            }
         })
         res.json({ conversationId: response.id });
     }
@@ -38,21 +42,20 @@ export const generateText = async (req: Request, res: Response) => {
 
         if (!conversation) return res.status(404).json({ message: "Conversation not found" })
 
-        // Save the user's message to the database
-        await prisma.chat.create({
-            data: { role: "user", message: question, conversationId }
-        });
-
         const history = await prisma.chat.findMany({
             where: { conversationId },
             orderBy: { createdAt: 'asc' },
         })
 
-
         const chatHistory = history.map((chat: any) => ({
             role: chat.role,
             content: chat.message
         }))
+
+        // Save the user's message to the database
+        await prisma.chat.create({
+            data: { role: "user", message: question, conversationId }
+        });
 
         let systemPrompt = "You are a helpful and expert AI assistant. Please provide clear and concise answers.";
 
@@ -69,7 +72,13 @@ export const generateText = async (req: Request, res: Response) => {
 
                 // Calculate similarity for each chunk
                 const chunksWithScores = document.chunks.map((chunk: any) => {
-                    const score = cosineSimilarity(queryEmbedding, chunk.embedding);
+                    let embedding = chunk.embedding;
+                    if (typeof embedding === 'string') {
+                        embedding = JSON.parse(embedding);
+                    } else if (!Array.isArray(embedding) && typeof embedding === 'object' && embedding !== null) {
+                        embedding = Object.values(embedding);
+                    }
+                    const score = cosineSimilarity(queryEmbedding, embedding);
                     return { text: chunk.text, score };
                 });
 
@@ -77,8 +86,15 @@ export const generateText = async (req: Request, res: Response) => {
                 chunksWithScores.sort((a: any, b: any) => b.score - a.score);
                 const topChunks = chunksWithScores.slice(0, 5);
                 const context = topChunks.map((c: any) => c.text).join('\n\n');
+                systemPrompt = `You are a helpful assistant that answers questions strictly based on the provided context.
+                Context:
+                ${context}
+                Rules:
+                - Answer only from the context above. Do not use outside knowledge.
+                - Be concise and direct.
+                - If the answer isn't in the context, say: "I don't have enough information to answer that."`;
 
-                systemPrompt = `You are a helpful assistant. Use the following document context to answer the user's question. If the answer is not in the context, say you don't know.\n\nContext:\n${context}`;
+
             }
         }
 
